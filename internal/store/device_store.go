@@ -28,7 +28,7 @@ func (s *Store) CreateDevice(ctx context.Context, d *model.Device) error {
 
 // GetDevice 按 ID 查询设备。
 func (s *Store) GetDevice(ctx context.Context, id string) (*model.Device, error) {
-	row := s.db.QueryRowContext(context.Background(), `
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, name, serial, lat, lon, status, created_at FROM devices WHERE id = ?`, id)
 	var d model.Device
 	var created string

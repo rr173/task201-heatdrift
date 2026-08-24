@@ -25,7 +25,7 @@ func (s *Store) CreateRoad(ctx context.Context, r *model.RoadSegment) error {
 
 // GetRoad 查询道路。
 func (s *Store) GetRoad(ctx context.Context, id string) (*model.RoadSegment, error) {
-	row := s.db.QueryRowContext(context.Background(), `
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, name, lat1, lon1, lat2, lon2, base_temp, status, created_at
 		FROM road_segments WHERE id = ?`, id)
 	var r model.RoadSegment

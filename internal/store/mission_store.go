@@ -26,7 +26,7 @@ func (s *Store) CreateMission(ctx context.Context, m *model.Mission) error {
 
 // GetMission 按 ID 查询任务。
 func (s *Store) GetMission(ctx context.Context, id string) (*model.Mission, error) {
-	row := s.db.QueryRowContext(context.Background(), `
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, device_id, name, status, cursor, point_count, jump_count, created_at, updated_at
 		FROM missions WHERE id = ?`, id)
 	var m model.Mission
