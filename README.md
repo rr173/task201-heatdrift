@@ -16,13 +16,14 @@
 - 采集任务：`running → gapped（缺口）/ cleaning（待清洗）→ completed`
 - 观测点：`pending → matched / jump → discarded`
 - 轨迹段：`draft → corrected → review（需复核）→ confirmed`
-- 版本：`computing → published → superseded`
+- 版本：`computing → published → superseded`（superseded 为冻结终态，不可重新发布）
 
 ## 关键不变量
 
 - 同一任务内设备序号唯一；重复上传按 `(mission_id, seq)` 幂等跳过。
 - 拒绝坐标越界、时间倒退、未知设备；任务完成后拒绝直接覆盖（`ErrFrozen`）。
 - 发布版本绑定修正策略与参数快照；旧 published 版本在发布新版本时自动 superseded。
+- superseded 为冻结终态：已被替代的版本不可重新发布，也不会因此错误替代当前发布版本。
 - 同一任务匹配游标串行推进，重启后从最后游标继续接收。
 
 ## 标准命令

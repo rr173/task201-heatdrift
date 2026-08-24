@@ -1,7 +1,10 @@
 // Package version 版本模块：管理冻结的轨迹研究版本。
-// 版本状态机 computing -> published -> superseded。
+// 版本状态机 computing -> published -> superseded，superseded 为终态（冻结）。
 // 发布版本绑定修正策略与校正参数快照；已发布版本不可直接覆盖，
 // 只能通过新版本替代（model.ErrFrozen 拒绝直接改写）。
+// superseded 版本不可重新发布：一旦被新版本替代即永久冻结，
+// 重新发布它会拒绝（model.ErrBadState），避免已退出版本重新成为当前版本、
+// 进而错误地替代当前已发布版本。
 package version
 
 import (
@@ -91,14 +94,15 @@ func (s *Service) Get(ctx context.Context, id string) (*model.Version, error) {
 }
 
 // Publish 发布版本：状态校验 computing -> published。
+// superseded 版本为冻结终态，禁止重新发布（TransitionVersion 拒绝），
+// 避免已退出版本重新成为当前版本并错误替代当前已发布版本。
 // 若任务已有其它 published 版本，旧版本自动替代（superseded）。
 func (s *Service) Publish(ctx context.Context, id string) (*model.Version, error) {
 	v, err := s.store.GetVersion(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	target := "published"
-	if err := model.TransitionVersion(v.Status, target); err != nil {
+	if err := model.TransitionVersion(v.Status, "published"); err != nil {
 		return nil, err
 	}
 	if err := s.store.PublishVersion(ctx, v); err != nil {

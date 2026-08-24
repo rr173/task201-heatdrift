@@ -92,6 +92,14 @@ func TestStateTransitions(t *testing.T) {
 	if err := TransitionVersion("published", "computing"); err == nil {
 		t.Fatal("published->computing should be rejected")
 	}
+	// published 可被新版本替代为 superseded。
+	if err := TransitionVersion("published", "superseded"); err != nil {
+		t.Fatalf("published->superseded should be allowed: %v", err)
+	}
+	// superseded 为冻结终态，禁止重新发布，否则已退出版本会重新成为当前版本。
+	if err := TransitionVersion("superseded", "published"); err == nil {
+		t.Fatal("superseded->published should be rejected (version frozen)")
+	}
 }
 
 func TestRound2(t *testing.T) {

@@ -118,12 +118,12 @@ type TrackSegment struct {
 // ---------- 版本 ----------
 
 // Version 冻结的轨迹版本。状态机：
-// computing -> published -> superseded。
+// computing -> published -> superseded（终态，冻结不可恢复）。
 type Version struct {
 	ID            string    `json:"id"`
 	MissionID     string    `json:"mission_id"`
 	Number        int       `json:"number"`
-	Status        string    `json:"status"` // computing / published / superseded
+	Status        string    `json:"status"` // computing / published / superseded（终态）
 	Strategy      string    `json:"strategy"`
 	DelaySec      float64   `json:"delay_sec"`
 	SegmentCount  int       `json:"segment_count"`

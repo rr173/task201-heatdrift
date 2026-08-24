@@ -57,7 +57,7 @@ var (
 	versionTransitions = map[string]map[string]bool{
 		"computing":  {"published": true, "superseded": true},
 		"published":  {"superseded": true},
-	"superseded": {"published": true},
+		"superseded": {},
 	}
 )
 
