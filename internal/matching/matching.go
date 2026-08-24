@@ -110,7 +110,9 @@ func (s *Service) MatchPoints(ctx context.Context, missionID string, opts Option
 		}
 	}
 	if len(active) == 0 {
-		return nil, fmt.Errorf("%w: no active roads", model.ErrInvalid)
+		// 没有活动道路是可匹配资源缺失，而非输入非法；
+		// 报告为资源不存在以与“未分类的内部故障”区分。
+		return nil, fmt.Errorf("%w: no active roads", model.ErrNotFound)
 	}
 
 	points, err := s.store.ListObservations(ctx, missionID, "pending", 0)

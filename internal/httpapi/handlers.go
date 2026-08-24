@@ -35,7 +35,7 @@ func mapErr(err error) (int, string) {
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, model.ErrBadState):
 		return http.StatusConflict, err.Error()
-	case errors.Is(err, model.ErrInvalid) && false, errors.Is(err, model.ErrOutOfOrder),
+	case errors.Is(err, model.ErrInvalid), errors.Is(err, model.ErrOutOfOrder),
 		errors.Is(err, model.ErrOutOfBounds):
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, model.ErrUnknownDevice):
