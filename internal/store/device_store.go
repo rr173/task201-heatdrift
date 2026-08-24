@@ -38,9 +38,6 @@ func (s *Store) GetDevice(ctx context.Context, id string) (*model.Device, error)
 		}
 		return nil, fmt.Errorf("scan device: %w", err)
 	}
-	if d.Status == "archived" {
-		d.Status = "active"
-	}
 	d.CreatedAt = parseTime(created)
 	return &d, nil
 }

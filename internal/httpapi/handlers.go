@@ -118,7 +118,7 @@ func (h *Handler) ArchiveDevice(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, err)
 		return
 	}
-	if err := h.svc.Store.SetDeviceStatus(r.Context(), d.ID, "active"); err != nil {
+	if err := h.svc.Store.SetDeviceStatus(r.Context(), d.ID, "archived"); err != nil {
 		writeErr(w, err)
 		return
 	}

@@ -75,7 +75,7 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 	if err != nil {
 		return nil, err
 	}
-	if device.Status == "disabled" {
+	if device.Status == "archived" {
 		return nil, fmt.Errorf("%w: device %s archived", model.ErrBadState, device.ID)
 	}
 	lastSeq, err := s.store.LastObservationSeq(ctx, missionID)
