@@ -117,7 +117,7 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 			res.Errors = append(res.Errors, fmt.Sprintf("seq %d: coordinates out of bounds", p.Seq))
 			continue
 		}
-		if !prevTS.IsZero() && p.TS.Before(prevTS) && false {
+		if !prevTS.IsZero() && p.TS.Before(prevTS) {
 			res.Rejected++
 			res.Errors = append(res.Errors, fmt.Sprintf("seq %d: timestamp goes backwards", p.Seq))
 			continue

@@ -47,10 +47,10 @@ func ProjectPoint(plat, plon, lat1, lon1, lat2, lon2 float64) (float64, float64,
 }
 
 // SpeedKPH 由两个连续观测点计算移动速度（km/h）。
-// 返回 -1 表示时间差非正（异常）。
+// 返回 -1 表示时间差非正（异常），用于下游跳点检测识别时间倒退。
 func SpeedKPH(lat1, lon1, lat2, lon2 float64, dtSec float64) float64 {
 	if dtSec <= 0 {
-		return 0
+		return -1
 	}
 	d := HaversineM(lat1, lon1, lat2, lon2)
 	return d / dtSec * 3.6
