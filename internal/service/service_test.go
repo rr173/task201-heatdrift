@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"task201-heatdrift/internal/ingest"
+	"task201-heatdrift/internal/matching"
 	"task201-heatdrift/internal/model"
 	"task201-heatdrift/internal/store"
 )
@@ -137,5 +139,61 @@ func TestMissionStatsEmpty(t *testing.T) {
 	st, err := svc.MissionStats(context.Background(), "missing")
 	if err == nil {
 		t.Fatalf("expected error for missing mission, got %+v", st)
+	}
+}
+
+// TestMatchExcludesRetiredRoad 验证停用道路不再作为可用匹配道路：
+// 当唯一的候选道路被停用后，匹配应报"无可用道路"而非继续将其作为候选。
+func TestMatchExcludesRetiredRoad(t *testing.T) {
+	_, svc := newTestStore(t)
+	ctx := context.Background()
+	dev := &model.Device{
+		ID: "dev-r", Name: "r", Serial: "SR", Lat: 39.9042, Lon: 116.4074,
+		Status: "active", CreatedAt: time.Now(),
+	}
+	if err := svc.Store.CreateDevice(ctx, dev); err != nil {
+		t.Fatalf("create device: %v", err)
+	}
+	road := &model.RoadSegment{
+		ID: "r1", Name: "r1", Lat1: 39.9030, Lon1: 116.4050, Lat2: 39.9070, Lon2: 116.4110,
+		BaseTemp: 28, Status: "active", CreatedAt: time.Now(),
+	}
+	if err := svc.Store.CreateRoad(ctx, road); err != nil {
+		t.Fatalf("create road: %v", err)
+	}
+	mission := &model.Mission{
+		ID: "m1", DeviceID: dev.ID, Name: "m1", Status: "running",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	if err := svc.Store.CreateMission(ctx, mission); err != nil {
+		t.Fatalf("create mission: %v", err)
+	}
+	now := time.Now().UTC()
+	pt := &model.Observation{
+		ID: "o1", MissionID: "m1", Seq: 1, TS: now, Lat: 39.9042, Lon: 116.4074,
+		Temp: 28, Status: "pending", CreatedAt: now,
+	}
+	if _, err := svc.Store.InsertObservation(ctx, svc.Store.DB(), pt); err != nil {
+		t.Fatalf("insert obs: %v", err)
+	}
+
+	// 停用该道路后，匹配必须排除它：此时无 active 道路 -> ErrNotFound。
+	if err := svc.Store.SetRoadStatus(ctx, "r1", "retired"); err != nil {
+		t.Fatalf("retire road: %v", err)
+	}
+	if _, err := svc.Matching.MatchPoints(ctx, "m1", matching.DefaultOptions()); !errors.Is(err, model.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound when only road is retired, got %v", err)
+	}
+
+	// 恢复道路为 active，匹配应正常产出候选。
+	if err := svc.Store.SetRoadStatus(ctx, "r1", "active"); err != nil {
+		t.Fatalf("reactivate road: %v", err)
+	}
+	res, err := svc.Matching.MatchPoints(ctx, "m1", matching.DefaultOptions())
+	if err != nil {
+		t.Fatalf("match after reactivate: %v", err)
+	}
+	if res.Candidates == 0 {
+		t.Fatal("expected candidates after reactivating road")
 	}
 }

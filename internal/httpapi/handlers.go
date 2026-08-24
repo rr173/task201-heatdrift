@@ -188,7 +188,7 @@ func (h *Handler) GetRoad(w http.ResponseWriter, r *http.Request) {
 // RetireRoad POST /api/roads/{id}/retire
 func (h *Handler) RetireRoad(w http.ResponseWriter, r *http.Request) {
 	id := pathValue(r, "id")
-	if err := h.svc.Store.SetRoadStatus(r.Context(), id, "active"); err != nil {
+	if err := h.svc.Store.SetRoadStatus(r.Context(), id, "retired"); err != nil {
 		writeErr(w, err)
 		return
 	}

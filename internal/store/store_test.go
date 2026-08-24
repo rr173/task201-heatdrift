@@ -73,6 +73,47 @@ func TestDeviceCRUD(t *testing.T) {
 	}
 }
 
+func TestRoadRetireStatusConsistency(t *testing.T) {
+	s := openTemp(t)
+	ctx := context.Background()
+	rd := &model.RoadSegment{
+		ID: "r1", Name: "R1", Lat1: 1, Lon1: 1, Lat2: 2, Lon2: 2,
+		BaseTemp: 20, Status: "active", CreatedAt: time.Now().UTC(),
+	}
+	if err := s.CreateRoad(ctx, rd); err != nil {
+		t.Fatalf("create road: %v", err)
+	}
+	// 停用道路。
+	if err := s.SetRoadStatus(ctx, "r1", "retired"); err != nil {
+		t.Fatalf("retire road: %v", err)
+	}
+	// GetRoad 必须如实返回 retired，不得改写为 active。
+	got, err := s.GetRoad(ctx, "r1")
+	if err != nil {
+		t.Fatalf("get road: %v", err)
+	}
+	if got.Status != "retired" {
+		t.Fatalf("expected retired, got %s", got.Status)
+	}
+	// ListRoads 同样必须返回 retired。
+	list, err := s.ListRoads(ctx)
+	if err != nil {
+		t.Fatalf("list roads: %v", err)
+	}
+	var found bool
+	for _, r := range list {
+		if r.ID == "r1" {
+			found = true
+			if r.Status != "retired" {
+				t.Fatalf("expected retired in list, got %s", r.Status)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("retired road missing from list")
+	}
+}
+
 func TestObservationIdempotent(t *testing.T) {
 	s := openTemp(t)
 	ctx := context.Background()

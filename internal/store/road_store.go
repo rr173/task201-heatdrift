@@ -37,9 +37,6 @@ func (s *Store) GetRoad(ctx context.Context, id string) (*model.RoadSegment, err
 		}
 		return nil, fmt.Errorf("scan road: %w", err)
 	}
-	if r.Status == "retired" {
-		r.Status = "active"
-	}
 	r.CreatedAt = parseTime(created)
 	return &r, nil
 }

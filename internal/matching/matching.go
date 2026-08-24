@@ -102,10 +102,10 @@ func (s *Service) MatchPoints(ctx context.Context, missionID string, opts Option
 	if err != nil {
 		return nil, err
 	}
-	// 仅保留 active 道路。
+	// 仅保留 active 道路（retired 道路不再参与匹配）。
 	var active []*model.RoadSegment
 	for _, r := range roads {
-		if r.Status == "active" || r.Status == "retired" {
+		if r.Status == "active" {
 			active = append(active, r)
 		}
 	}
