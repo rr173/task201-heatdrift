@@ -139,3 +139,58 @@ func TestMissionStatsEmpty(t *testing.T) {
 		t.Fatalf("expected error for missing mission, got %+v", st)
 	}
 }
+
+// TestPipelinePreservesGapped 验证：检测到时间缺口的任务进入 gapped，
+// 完整流水线结束后仍保持 gapped（无跳点时），缺口事实不丢失、不被
+// 降级回 running。
+func TestPipelinePreservesGapped(t *testing.T) {
+	st, svc := newTestStore(t)
+	ctx := context.Background()
+
+	dev := &model.Device{
+		ID: "dev-gp", Name: "gp", Serial: "SGP",
+		Lat: 39.9042, Lon: 116.4074, Status: "active", CreatedAt: time.Now(),
+	}
+	if err := svc.Store.CreateDevice(ctx, dev); err != nil {
+		t.Fatalf("create device: %v", err)
+	}
+	if err := svc.Store.CreateRoad(ctx, &model.RoadSegment{
+		ID: "rgp", Name: "rgp", Lat1: 39.9030, Lon1: 116.4050,
+		Lat2: 39.9070, Lon2: 116.4110, BaseTemp: 28, Status: "active", CreatedAt: time.Now(),
+	}); err != nil {
+		t.Fatalf("create road: %v", err)
+	}
+	mission := &model.Mission{
+		ID: "m-gp", DeviceID: dev.ID, Name: "m-gp", Status: "running",
+		CreatedAt: time.Now(), UpdatedAt: time.Now(),
+	}
+	if err := svc.Store.CreateMission(ctx, mission); err != nil {
+		t.Fatalf("create mission: %v", err)
+	}
+
+	// 两点间隔远超 MaxGapSec -> 缺口，任务进入 gapped。
+	base := time.Now().UTC().Add(-5 * time.Minute)
+	if _, err := svc.Ingest.Ingest(ctx, mission.ID, ingest.BatchInput{Points: []ingest.PointInput{
+		{Seq: 1, TS: base, Lat: 39.9030, Lon: 116.4050, Temp: 28.0},
+		{Seq: 2, TS: base.Add(ingest.MaxGapSec * 2 * time.Second), Lat: 39.9031, Lon: 116.4051, Temp: 28.2},
+	}}); err != nil {
+		t.Fatalf("ingest: %v", err)
+	}
+
+	before, _ := st.GetMission(ctx, mission.ID)
+	if before.Status != "gapped" {
+		t.Fatalf("precondition: expected gapped before pipeline, got %s", before.Status)
+	}
+
+	pipe, err := svc.RunPipeline(ctx, mission.ID)
+	if err != nil {
+		t.Fatalf("pipeline: %v", err)
+	}
+	if pipe.Status != "gapped" {
+		t.Fatalf("expected pipeline to preserve gapped, got %s", pipe.Status)
+	}
+	after, _ := st.GetMission(ctx, mission.ID)
+	if after.Status != "gapped" {
+		t.Fatalf("expected mission gapped after pipeline, got %s", after.Status)
+	}
+}

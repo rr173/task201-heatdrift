@@ -92,10 +92,16 @@ func (s *Services) RunPipeline(ctx context.Context, missionID string) (*Pipeline
 	if err != nil {
 		return nil, fmt.Errorf("build tracks: %w", err)
 	}
-	// 5. 任务状态：有跳点则 cleaning，否则 running（已有 gapped 保留）。
+	// 5. 任务状态推导：
+	//    - 已完成的任务保持 completed，流水线不回退状态；
+	//    - 出现跳点则进入 cleaning（running/gapped -> cleaning 均合法）；
+	//    - 否则缺口（gapped）事实保留，不被降级回 running，避免缺口事实丢失。
 	status := "running"
 	if mission.Status == "gapped" {
-		status = "running"
+		status = "gapped"
+	}
+	if mission.Status == "completed" {
+		status = "completed"
 	}
 	if matchRes.PointsJumped > 0 {
 		status = "cleaning"

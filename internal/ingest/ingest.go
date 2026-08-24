@@ -96,6 +96,10 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 	prevTS := lastTS
 	prevSeq := lastSeq
 
+	// gapped 标记：本批是否出现超过允许间隔的时间缺口。
+	// 缺口一旦出现即作为持久事实记录（任务进入 gapped），点仍接收（保留原始数据）。
+	gapped := false
+
 	var newPoints []*model.Observation
 	for i := range input.Points {
 		p := input.Points[i]
@@ -123,10 +127,8 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 			continue
 		}
 		if !prevTS.IsZero() && p.TS.Sub(prevTS).Seconds() > MaxGapSec {
-			// 缺口：任务进入 gapped，但点仍接收（保留原始数据）。
-			if err := s.store.SetMissionStatus(ctx, missionID, "running"); err != nil {
-				return nil, err
-			}
+			// 缺口：标记任务进入 gapped，但点仍接收（保留原始数据）。
+			gapped = true
 		}
 		obs := &model.Observation{
 			ID:        fmt.Sprintf("obs-%s-%d", missionID, p.Seq),
@@ -170,6 +172,12 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 	newCursor := prevSeq
 	if err := s.store.UpdateMissionCursor(ctx, tx, missionID, newCursor, res.Accepted); err != nil {
 		return nil, err
+	}
+	// 缺口状态与点写入、游标推进同事务提交，确保重启后 gapped 事实不丢。
+	if gapped {
+		if err := s.store.SetMissionStatusTx(ctx, tx, missionID, "gapped"); err != nil {
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit ingest: %w", err)

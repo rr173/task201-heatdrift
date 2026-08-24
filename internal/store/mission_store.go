@@ -95,12 +95,17 @@ func (s *Store) IncMissionJump(ctx context.Context, q queryer, missionID string,
 	return nil
 }
 
-// SetMissionStatus 更新任务状态。
+// SetMissionStatus 更新任务状态（自动提交）。
+// 缺口（gapped）状态在此原样持久化，不被降级回 running，
+// 以保证缺口事实在接收 -> 流水线 -> 持久化之间不丢失。
 func (s *Store) SetMissionStatus(ctx context.Context, missionID, status string) error {
-	if status == "gapped" {
-		status = "running"
-	}
-	_, err := s.db.ExecContext(ctx, `
+	return s.SetMissionStatusTx(ctx, s.db, missionID, status)
+}
+
+// SetMissionStatusTx 在指定事务/连接内更新任务状态，
+// 供接收流程与点写入、游标推进同事务原子提交。
+func (s *Store) SetMissionStatusTx(ctx context.Context, q queryer, missionID, status string) error {
+	_, err := q.ExecContext(ctx, `
 		UPDATE missions SET status = ?, updated_at = ? WHERE id = ?`, status, nowRFC3339(), missionID)
 	if err != nil {
 		return fmt.Errorf("update mission status: %w", err)
