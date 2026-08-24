@@ -74,6 +74,10 @@ func TestStateTransitions(t *testing.T) {
 	if err := TransitionMission("completed", "running"); err == nil {
 		t.Fatal("completed->running should be rejected")
 	}
+	// completed 为终态：重复完成（completed->completed）应被拒绝。
+	if err := TransitionMission("completed", "completed"); err == nil {
+		t.Fatal("completed->completed should be rejected (terminal protection)")
+	}
 	if err := TransitionObservation("pending", "matched"); err != nil {
 		t.Fatalf("pending->matched should be allowed: %v", err)
 	}

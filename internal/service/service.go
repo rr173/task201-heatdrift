@@ -124,14 +124,15 @@ type PipelineResult struct {
 }
 
 // CompleteMission 完成任务（running/gapped/cleaning -> completed）。
+// completed 为终态：已完成的任务重复调用完成接口将被状态机拒绝，
+// 返回 ErrBadState，避免重复完成造成终态被绕过。
 func (s *Services) CompleteMission(ctx context.Context, missionID string) (*model.Mission, error) {
 	mission, err := s.Store.GetMission(ctx, missionID)
 	if err != nil {
 		return nil, err
 	}
-	if mission.Status == "completed" {
-		mission.Status = "running"
-	}
+	// 终态保护：completed 不允许流转到任何状态（含自身），
+	// 故重复完成在此被拒绝，保持首次完成流程不受影响。
 	if err := model.TransitionMission(mission.Status, "completed"); err != nil {
 		return nil, err
 	}

@@ -40,7 +40,9 @@ var (
 		"running":   {"gapped": true, "cleaning": true, "completed": true},
 		"gapped":    {"cleaning": true, "completed": true, "running": true},
 		"cleaning":  {"running": true, "completed": true},
-	"completed": {"completed": true},
+		// completed 为终态：不再允许任何流转（含自身），
+		// CompleteMission 重复调用应被拒绝。
+		"completed": {},
 	}
 	obsTransitions = map[string]map[string]bool{
 		"pending": {"matched": true, "jump": true, "discarded": true},

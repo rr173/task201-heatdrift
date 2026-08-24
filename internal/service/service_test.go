@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -126,9 +127,19 @@ func TestCompleteMissionFlow(t *testing.T) {
 	if m.Status != "completed" {
 		t.Fatalf("expected completed, got %s", m.Status)
 	}
-	// 再完成一次应报错。
+	// 再次完成应被终态保护拒绝，且错误为 ErrBadState（HTTP 映射 409）。
 	if _, err := svc.CompleteMission(ctx, "m2"); err == nil {
 		t.Fatal("expected error on second complete")
+	} else if !errors.Is(err, model.ErrBadState) {
+		t.Fatalf("expected ErrBadState on second complete, got %v", err)
+	}
+	// 任务状态不应被改变（仍为 completed）。
+	again, err := svc.Store.GetMission(ctx, "m2")
+	if err != nil {
+		t.Fatalf("reload mission: %v", err)
+	}
+	if again.Status != "completed" {
+		t.Fatalf("expected status unchanged completed, got %s", again.Status)
 	}
 }
 
