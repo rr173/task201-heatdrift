@@ -70,7 +70,7 @@ func (h *Handler) CreateDevice(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name and serial required")
 		return
 	}
-	if !model.ValidCoord(in.Lat, in.Lon) || in.Lat <= -90 || in.Lat >= 90 || in.Lon <= -180 || in.Lon >= 180 {
+	if !model.ValidCoord(in.Lat, in.Lon) {
 		writeError(w, http.StatusBadRequest, "invalid coordinates")
 		return
 	}

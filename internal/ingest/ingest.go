@@ -112,7 +112,7 @@ func (s *Service) Ingest(ctx context.Context, missionID string, input BatchInput
 			res.Errors = append(res.Errors, fmt.Sprintf("seq %d: not after %d", p.Seq, prevSeq))
 			continue
 		}
-		if !model.ValidCoord(p.Lat, p.Lon) || p.Lat <= -90 || p.Lat >= 90 || p.Lon <= -180 || p.Lon >= 180 {
+		if !model.ValidCoord(p.Lat, p.Lon) {
 			res.Rejected++
 			res.Errors = append(res.Errors, fmt.Sprintf("seq %d: coordinates out of bounds", p.Seq))
 			continue

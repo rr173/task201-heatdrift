@@ -57,8 +57,9 @@ func SpeedKPH(lat1, lon1, lat2, lon2 float64, dtSec float64) float64 {
 }
 
 // ValidCoord 校验经纬度范围。
+// 边界值合法：纬度可达极点 ±90，经度可在反子午线 ±180。
 func ValidCoord(lat, lon float64) bool {
-	return lat > -90 && lat < 90 && lon > -180 && lon < 180
+	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
 }
 
 // Round2 保留两位小数。
