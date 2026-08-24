@@ -108,9 +108,11 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, apiError{Error: msg})
 }
 
-// parseBody 解析 JSON 请求体。
+// parseBody 解析 JSON 请求体。拒绝未知字段，避免拼写错误或多余字段
+// 被静默吞掉而绕过必填校验（如缺少 name/serial 的设备请求）。
 func parseBody(w http.ResponseWriter, r *http.Request, dst any) bool {
 	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid json body: "+err.Error())
 		return false

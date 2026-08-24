@@ -11,10 +11,11 @@ import (
 
 // ---------- 设备 ----------
 
-// CreateDevice 注册设备。
+// CreateDevice 注册设备。拒绝缺少 name 或 serial 的请求（HTTP 层已
+// 校验，此处作为持久化入口的防线，避免绕过校验直接调用存储）。
 func (s *Store) CreateDevice(ctx context.Context, d *model.Device) error {
-	if d.Serial == "" {
-		d.Serial = d.ID
+	if d.Name == "" || d.Serial == "" {
+		return fmt.Errorf("%w: device name and serial required", model.ErrInvalid)
 	}
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO devices (id, name, serial, lat, lon, status, created_at)

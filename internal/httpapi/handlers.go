@@ -66,6 +66,10 @@ func (h *Handler) CreateDevice(w http.ResponseWriter, r *http.Request) {
 	if !parseBody(w, r, &in) {
 		return
 	}
+	if in.Name == "" || in.Serial == "" {
+		writeError(w, http.StatusBadRequest, "name and serial required")
+		return
+	}
 	if !model.ValidCoord(in.Lat, in.Lon) {
 		writeError(w, http.StatusBadRequest, "invalid coordinates")
 		return
